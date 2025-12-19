@@ -11,8 +11,8 @@ npm install
 
 2. **Configure API URL (optional):**
    - Create `.env` file in the frontend directory
-   - Add: `REACT_APP_API_URL=http://localhost:5000`
-   - Default is `http://localhost:5000`
+   - Add: `REACT_APP_API_URL=https://startup-idea-evaluator-bryf.onrender.com`
+   - Default is `https://startup-idea-evaluator-bryf.onrender.com`
 
 3. **Run the development server:**
 ```bash

@@ -68,6 +68,8 @@ python app.py
 
 Backend will run on `http://localhost:5000`
 
+**Note:** The frontend is configured to use the deployed API at `https://startup-idea-evaluator-bryf.onrender.com` by default. For local development, update the API URL in `frontend/index.html` or set the `REACT_APP_API_URL` environment variable.
+
 ### Frontend Setup
 
 1. **Navigate to frontend directory:**
@@ -115,6 +117,8 @@ Feasibility score (0-100) is calculated using weighted factors:
 - **Risk Level** (10%)
 
 ## 🔌 API Endpoints
+
+**Deployed API:** `https://startup-idea-evaluator-bryf.onrender.com`
 
 ### `POST /evaluate`
 Evaluates a startup idea.

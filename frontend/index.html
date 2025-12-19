@@ -438,7 +438,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:5000';
+        const API_BASE_URL = 'https://startup-idea-evaluator-bryf.onrender.com';
         let currentEvaluation = null;
         let radarChart = null;
 
@@ -834,20 +834,49 @@
                     body: JSON.stringify({ idea: ideaText }),
                 });
 
-                const data = await response.json();
-
+                // Check if response is ok
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed to evaluate startup idea');
+                    let errorMessage = 'Failed to evaluate startup idea';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    } catch (e) {
+                        // If JSON parsing fails, use status text
+                        errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                // Parse JSON response
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error('Invalid response format from server');
+                }
+
+                // Validate response structure
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid response from server');
                 }
 
                 if (data.success && data.evaluation) {
                     state.evaluation = data.evaluation;
                     currentEvaluation = data.evaluation;
+                } else if (data.error) {
+                    throw new Error(data.error);
                 } else {
-                    throw new Error('Invalid response from server');
+                    throw new Error('Invalid response structure from server');
                 }
             } catch (err) {
-                state.error = err.message || 'An error occurred while evaluating your idea';
+                // Handle different types of errors
+                if (err instanceof TypeError && err.message.includes('fetch')) {
+                    state.error = 'Network error: Unable to connect to the server. Please check your internet connection.';
+                } else if (err instanceof SyntaxError) {
+                    state.error = 'Error: Invalid response from server. Please try again.';
+                } else {
+                    state.error = err.message || 'An error occurred while evaluating your idea. Please try again.';
+                }
                 console.error('Evaluation error:', err);
             } finally {
                 state.loading = false;

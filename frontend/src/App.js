@@ -4,7 +4,7 @@ import IdeaInput from './components/IdeaInput';
 import EvaluationResults from './components/EvaluationResults';
 import LoadingSpinner from './components/LoadingSpinner';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://startup-idea-evaluator-bryf.onrender.com';
 
 function App() {
   const [evaluation, setEvaluation] = useState(null);
