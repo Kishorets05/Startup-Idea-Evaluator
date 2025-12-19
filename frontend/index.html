@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Evaluator</title>
+    
+    <!-- Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- jsPDF from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .App {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .app-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        .app-header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .idea-input-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .instruction-text {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .idea-textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .idea-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .idea-textarea:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #c33;
+        }
+
+        .evaluate-button {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .evaluate-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .evaluate-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner-container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .evaluation-results {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .results-header h2 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        .reset-button {
+            padding: 10px 20px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-button:hover {
+            background: #7f8c8d;
+        }
+
+        .score-display {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            border: 8px solid;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+        }
+
+        .score-value {
+            font-size: 4rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .score-max {
+            font-size: 1.5rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .score-label {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .score-description {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
+        .charts-container {
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .radar-chart {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .evaluation-sections {
+            margin-bottom: 30px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: box-shadow 0.3s;
+        }
+
+        .section-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-header {
+            padding: 20px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            transition: background 0.3s;
+        }
+
+        .section-header:hover {
+            background: #e9ecef;
+        }
+
+        .section-header h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        .toggle-icon {
+            font-size: 1.5rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .section-content {
+            padding: 20px 25px;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .section-content p {
+            margin: 0;
+            text-align: justify;
+        }
+
+        .section-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .section-content li {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .section-content li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .pdf-download-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .pdf-button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .pdf-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+
+        .pdf-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .app-header h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .results-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .score-circle {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .score-value {
+                font-size: 3rem;
+            }
+
+            .radar-chart {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="App">
+        <div class="container">
+            <header class="app-header">
+                <h1>🚀 Startup Evaluator</h1>
+                <p class="subtitle">AI-Powered Startup Idea Analysis</p>
+            </header>
+
+            <div id="app-content">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        let currentEvaluation = null;
+        let radarChart = null;
+
+        // State management
+        const state = {
+            evaluation: null,
+            loading: false,
+            error: null,
+            expandedSection: null
+        };
+
+        // Render functions
+        function renderApp() {
+            const content = document.getElementById('app-content');
+            
+            if (state.loading) {
+                content.innerHTML = getLoadingSpinner();
+                return;
+            }
+
+            if (state.evaluation) {
+                content.innerHTML = getEvaluationResults();
+                renderCharts();
+            } else {
+                content.innerHTML = getIdeaInput();
+            }
+        }
+
+        function getIdeaInput() {
+            return `
+                <div class="idea-input-container">
+                    <div class="card">
+                        <h2>Enter Your Startup Idea</h2>
+                        <p class="instruction-text">
+                            Describe your startup idea in detail. Include the problem you're solving, 
+                            your target audience, and your proposed solution.
+                        </p>
+                        
+                        <form id="idea-form">
+                            <textarea
+                                id="idea-textarea"
+                                class="idea-textarea"
+                                placeholder="Example: A mobile app that connects local farmers directly with consumers, eliminating middlemen and ensuring fresh produce delivery within 24 hours. The app will include features like real-time inventory, subscription boxes, and farm-to-table tracking..."
+                                rows="8"
+                                required
+                            ></textarea>
+                            
+                            ${state.error ? `<div class="error-message">⚠️ ${state.error}</div>` : ''}
+                            
+                            <button 
+                                type="submit" 
+                                class="evaluate-button"
+                                ${state.loading ? 'disabled' : ''}
+                            >
+                                ${state.loading ? 'Evaluating...' : 'Evaluate Startup'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getLoadingSpinner() {
+            return `
+                <div class="loading-overlay">
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                        <p>Analyzing your startup idea...</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getEvaluationResults() {
+            const eval = state.evaluation;
+            const score = eval.feasibility_score || 0;
+            const scoreColor = getScoreColor(score);
+            const scoreLabel = getScoreLabel(score);
+
+            return `
+                <div class="evaluation-results">
+                    <div class="results-header">
+                        <h2>Evaluation Results</h2>
+                        <button onclick="handleReset()" class="reset-button">
+                            Evaluate Another Idea
+                        </button>
+                    </div>
+
+                    <div class="score-display">
+                        <div class="score-circle" style="border-color: ${scoreColor}">
+                            <div class="score-value" style="color: ${scoreColor}">
+                                ${score}
+                            </div>
+                            <div class="score-max">/ 100</div>
+                        </div>
+                        <div class="score-label" style="color: ${scoreColor}">
+                            ${scoreLabel}
+                        </div>
+                        <div class="score-description">
+                            Feasibility Score
+                        </div>
+                    </div>
+
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <h3>Component Analysis</h3>
+                            <div class="radar-chart">
+                                <canvas id="radar-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${getEvaluationSections()}
+
+                    <div class="pdf-download-container">
+                        <button onclick="generatePDF()" class="pdf-button" id="pdf-button">
+                            📄 Download PDF Report
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getEvaluationSections() {
+            const eval = state.evaluation;
+            const sections = [
+                { key: 'executive_summary', title: 'Executive Summary', content: eval.executive_summary, type: 'text' },
+                { key: 'problem_statement', title: 'Problem Statement', content: eval.problem_statement, type: 'text' },
+                { key: 'target_users', title: 'Target Users', content: eval.target_users, type: 'text' },
+                { key: 'market_potential', title: 'Market Potential', content: eval.market_potential, type: 'text' },
+                { key: 'technical_feasibility', title: 'Technical Feasibility', content: eval.technical_feasibility, type: 'text' },
+                { key: 'innovation_uniqueness', title: 'Innovation & Uniqueness', content: eval.innovation_uniqueness, type: 'text' },
+                { key: 'risks_challenges', title: 'Risks & Challenges', content: eval.risks_challenges, type: 'text' },
+                { key: 'strengths', title: 'Strengths', content: eval.strengths, type: 'list' },
+                { key: 'weaknesses', title: 'Weaknesses', content: eval.weaknesses, type: 'list' },
+                { key: 'improvement_suggestions', title: 'Improvement Suggestions', content: eval.improvement_suggestions, type: 'list' },
+                { key: 'final_recommendation', title: 'Final Recommendation', content: eval.final_recommendation, type: 'text' }
+            ];
+
+            return `
+                <div class="evaluation-sections">
+                    ${sections.map(section => `
+                        <div class="section-card">
+                            <div class="section-header" onclick="toggleSection('${section.key}')">
+                                <h3>${section.title}</h3>
+                                <span class="toggle-icon">
+                                    ${state.expandedSection === section.key ? '−' : '+'}
+                                </span>
+                            </div>
+                            ${state.expandedSection === section.key ? `
+                                <div class="section-content">
+                                    ${formatSectionContent(section.content, section.type)}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getScoreColor(score) {
+            if (score >= 70) return '#27ae60';
+            if (score >= 50) return '#f39c12';
+            return '#e74c3c';
+        }
+
+        function getScoreLabel(score) {
+            if (score >= 70) return 'High Potential';
+            if (score >= 50) return 'Moderate Potential';
+            return 'Needs Improvement';
+        }
+
+        function formatSectionContent(content, type) {
+            if (type === 'list') {
+                // Handle list type
+                if (Array.isArray(content)) {
+                    return `<ul>${content.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>`;
+                }
+                return `<ul><li>${escapeHtml(String(content))}</li></ul>`;
+            }
+            
+            // Handle text type - convert to bullet points if structured
+            let text = String(content || '');
+            
+            // Try to parse as structured data (dictionary/object format)
+            if (text.includes("'") && (text.includes("':") || text.includes("': '")) || text.includes(':')) {
+                // Parse Python dict-like string: 'key': 'value'
+                const parsed = parseDictToBullets(text);
+                if (parsed && Object.keys(parsed).length > 0) {
+                    // Convert object to bullet points with cleaned text
+                    const bullets = Object.entries(parsed)
+                        .map(([key, value]) => {
+                            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const cleanedValue = cleanBulletText(String(value));
+                            return `<li><strong>${escapeHtml(formattedKey)}:</strong> ${escapeHtml(cleanedValue)}</li>`;
+                        })
+                        .join('');
+                    return `<ul>${bullets}</ul>`;
+                }
+            }
+            
+            // Try to parse as JSON object
+            if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
+                try {
+                    // Replace single quotes with double quotes for JSON parsing
+                    const jsonStr = text.replace(/'/g, '"');
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                        // Convert object to bullet points with cleaned text
+                        const bullets = Object.entries(parsed)
+                            .map(([key, value]) => {
+                                const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                const cleanedValue = cleanBulletText(String(value));
+                                return `<li><strong>${escapeHtml(formattedKey)}:</strong> ${escapeHtml(cleanedValue)}</li>`;
+                            })
+                            .join('');
+                        return `<ul>${bullets}</ul>`;
+                    }
+                } catch (e) {
+                    // If parsing fails, continue with text formatting
+                }
+            }
+            
+            // Format regular text - break into sentences and make bullet points
+            // Split by periods, exclamation marks, or newlines
+            const sentences = text.split(/[.!?]\s+|\.\s*\n|\n\s*/).filter(s => s.trim().length > 0);
+            
+            if (sentences.length > 1) {
+                // Multiple sentences - convert to bullets with cleaned text
+                const bullets = sentences
+                    .map(s => cleanBulletText(s))
+                    .filter(s => s.length > 0)
+                    .map(s => `<li>${escapeHtml(s)}</li>`)
+                    .join('');
+                return `<ul>${bullets}</ul>`;
+            } else {
+                // Single sentence or paragraph - show as paragraph with cleaned text
+                const cleaned = cleanBulletText(text);
+                return `<p>${escapeHtml(cleaned)}</p>`;
+            }
+        }
+
+        function parseDictToBullets(text) {
+            // Parse Python dict-like strings and return as object
+            // Handles patterns like 'key': 'value' with potentially long values
+            const result = {};
+            
+            // Try multiple regex patterns to catch different formats
+            // Pattern 1: 'key': 'value'
+            let regex = /['"]([^'"]+)['"]\s*:\s*['"]([^'"]{0,1000}?)['"]/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                const key = match[1].trim();
+                let value = match[2].trim();
+                // Clean up value - remove trailing punctuation if it's part of the format
+                value = value.replace(/^['"]+|['"]+$/g, ''); // Remove surrounding quotes
+                result[key] = value;
+            }
+            
+            // Pattern 2: key: 'value' or key: "value"
+            if (Object.keys(result).length === 0) {
+                regex = /(\w+)\s*:\s*['"]([^'"]{0,1000}?)['"]/g;
+                while ((match = regex.exec(text)) !== null) {
+                    const key = match[1].trim();
+                    let value = match[2].trim();
+                    value = value.replace(/^['"]+|['"]+$/g, '');
+                    result[key] = value;
+                }
+            }
+            
+            // Pattern 3: Handle cases like "Size: value, 'key': 'value'"
+            if (Object.keys(result).length === 0) {
+                // Try to extract key-value pairs separated by commas
+                const parts = text.split(',').filter(p => p.includes(':'));
+                parts.forEach(part => {
+                    const colonIndex = part.indexOf(':');
+                    if (colonIndex > 0) {
+                        const key = part.substring(0, colonIndex).trim().replace(/^['"]+|['"]+$/g, '');
+                        let value = part.substring(colonIndex + 1).trim().replace(/^['"]+|['"]+$/g, '');
+                        // Clean the value - remove trailing punctuation
+                        value = value.replace(/,\s*$/, '').replace(/\.\s*$/, '').trim();
+                        if (key && value) {
+                            result[key] = value;
+                        }
+                    }
+                });
+            }
+            
+            return Object.keys(result).length > 0 ? result : null;
+        }
+        
+        function cleanBulletText(text) {
+            // Remove unwanted punctuation and formatting while preserving important content
+            return text
+                .replace(/^['"]+|['"]+$/g, '') // Remove surrounding quotes
+                .replace(/^['"]+|['"]+$/g, '') // Remove any remaining quotes
+                .replace(/,\s*$/, '') // Remove trailing commas
+                .replace(/\s+/g, ' ') // Normalize whitespace
+                .replace(/\s*,\s*,/g, ',') // Remove double commas
+                .trim();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderCharts() {
+            setTimeout(() => {
+                const ctx = document.getElementById('radar-chart');
+                if (!ctx) return;
+
+                const eval = state.evaluation;
+                const componentScores = eval.component_scores || {
+                    problem_clarity: eval.feasibility_score || 50,
+                    market_demand: eval.feasibility_score || 50,
+                    technical_feasibility: eval.feasibility_score || 50,
+                    innovation_level: eval.feasibility_score || 50,
+                    scalability: eval.feasibility_score || 50,
+                    risk_level: eval.feasibility_score || 50
+                };
+
+                if (radarChart) {
+                    radarChart.destroy();
+                }
+
+                radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: [
+                            'Problem Clarity',
+                            'Market Demand',
+                            'Technical Feasibility',
+                            'Innovation',
+                            'Scalability',
+                            'Risk Management'
+                        ],
+                        datasets: [{
+                            label: 'Score',
+                            data: [
+                                componentScores.problem_clarity || componentScores.problemClarity || 50,
+                                componentScores.market_demand || componentScores.marketDemand || 50,
+                                componentScores.technical_feasibility || componentScores.technicalFeasibility || 50,
+                                componentScores.innovation_level || componentScores.innovation || 50,
+                                componentScores.scalability || 50,
+                                componentScores.risk_level || componentScores.riskLevel || 50
+                            ],
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 20
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }, 100);
+        }
+
+        // Event handlers
+        async function handleEvaluate(ideaText) {
+            state.loading = true;
+            state.error = null;
+            state.evaluation = null;
+            renderApp();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/evaluate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ idea: ideaText }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to evaluate startup idea');
+                }
+
+                if (data.success && data.evaluation) {
+                    state.evaluation = data.evaluation;
+                    currentEvaluation = data.evaluation;
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (err) {
+                state.error = err.message || 'An error occurred while evaluating your idea';
+                console.error('Evaluation error:', err);
+            } finally {
+                state.loading = false;
+                renderApp();
+            }
+        }
+
+        function handleReset() {
+            state.evaluation = null;
+            state.error = null;
+            state.expandedSection = null;
+            currentEvaluation = null;
+            if (radarChart) {
+                radarChart.destroy();
+                radarChart = null;
+            }
+            renderApp();
+        }
+
+        function toggleSection(sectionKey) {
+            state.expandedSection = state.expandedSection === sectionKey ? null : sectionKey;
+            renderApp();
+        }
+
+        async function generatePDF() {
+            const button = document.getElementById('pdf-button');
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Generating PDF...';
+            }
+
+            try {
+                const eval = state.evaluation;
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+
+                // Add content
+                pdf.setFontSize(24);
+                pdf.text('Startup Evaluation Report', 105, 20, { align: 'center' });
+                
+                pdf.setFontSize(11);
+                pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+
+                const score = eval.feasibility_score || 0;
+                pdf.setFontSize(36);
+                pdf.setTextColor(score >= 70 ? 39 : score >= 50 ? 243 : 231, 
+                                score >= 70 ? 174 : score >= 50 ? 156 : 76, 
+                                score >= 70 ? 96 : score >= 50 ? 18 : 60);
+                pdf.text(`${score}/100`, 105, 50, { align: 'center' });
+                pdf.setTextColor(0, 0, 0);
+
+                let yPos = 70;
+                pdf.setFontSize(14);
+                pdf.text('Executive Summary', 20, yPos);
+                yPos += 10;
+                pdf.setFontSize(10);
+                const execSummary = pdf.splitTextToSize(eval.executive_summary || 'N/A', 170);
+                pdf.text(execSummary, 20, yPos);
+                yPos += execSummary.length * 5 + 10;
+
+                // Add other sections
+                const sections = [
+                    ['Problem Statement', eval.problem_statement],
+                    ['Target Users', eval.target_users],
+                    ['Market Potential', eval.market_potential],
+                    ['Technical Feasibility', eval.technical_feasibility],
+                    ['Innovation & Uniqueness', eval.innovation_uniqueness],
+                    ['Risks & Challenges', eval.risks_challenges],
+                    ['Final Recommendation', eval.final_recommendation]
+                ];
+
+                sections.forEach(([title, content]) => {
+                    if (yPos > 250) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
+                    pdf.setFontSize(14);
+                    pdf.text(title, 20, yPos);
+                    yPos += 10;
+                    pdf.setFontSize(10);
+                    const text = pdf.splitTextToSize(content || 'N/A', 170);
+                    pdf.text(text, 20, yPos);
+                    yPos += text.length * 5 + 10;
+                });
+
+                // Add lists
+                const lists = [
+                    ['Strengths', eval.strengths],
+                    ['Weaknesses', eval.weaknesses],
+                    ['Improvement Suggestions', eval.improvement_suggestions]
+                ];
+
+                lists.forEach(([title, items]) => {
+                    if (yPos > 250) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
+                    pdf.setFontSize(14);
+                    pdf.text(title, 20, yPos);
+                    yPos += 10;
+                    pdf.setFontSize(10);
+                    if (Array.isArray(items)) {
+                        items.forEach(item => {
+                            pdf.text(`• ${item}`, 25, yPos);
+                            yPos += 7;
+                        });
+                    }
+                    yPos += 5;
+                });
+
+                pdf.save(`startup_evaluation_${Date.now()}.pdf`);
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Failed to generate PDF. Please try again.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = '📄 Download PDF Report';
+                }
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+
+            // Handle form submission
+            document.addEventListener('submit', (e) => {
+                if (e.target.id === 'idea-form') {
+                    e.preventDefault();
+                    const textarea = document.getElementById('idea-textarea');
+                    if (textarea && textarea.value.trim()) {
+                        handleEvaluate(textarea.value.trim());
+                    }
+                }
+            });
+        });
+
+        // Make functions globally available
+        window.handleReset = handleReset;
+        window.toggleSection = toggleSection;
+        window.generatePDF = generatePDF;
+    </script>
+</body>
+</html>
+
