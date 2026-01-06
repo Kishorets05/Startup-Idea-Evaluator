@@ -25,7 +25,7 @@ st.set_page_config(
     page_title="Startup Evaluator",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Custom CSS for modern, professional UI
