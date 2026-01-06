@@ -69,15 +69,44 @@ class LLMService:
 STARTUP IDEA:
 {idea_text}
 
+EVALUATION CRITERIA - STRICT FEASIBILITY SCORING:
+
+HIGH FEASIBILITY (75-95) - ONLY if ALL criteria met:
+- Solves a REAL, EXISTING problem faced today
+- Has a CLEARLY DEFINED target user or customer (not "everyone")
+- Uses CURRENTLY AVAILABLE and PROVEN technology
+- Has a REALISTIC MVP path within 6-12 months
+- Does NOT promise guaranteed outcomes
+- Has LOW ethical, legal, and regulatory risk
+
+LOW FEASIBILITY (10-35) - If ANY criteria met:
+- Claims scientifically IMPOSSIBLE or unproven capabilities (mind reading, exact exam prediction, guaranteed profits, future prediction)
+- Promises guaranteed success or exact outcomes
+- Is vague, abstract, or lacks a concrete execution plan
+- Enables or encourages cheating, manipulation, or unethical behavior
+- Has no realistic MVP or validation path
+
+IMPORTANT RULES:
+- Competition does NOT reduce feasibility; it only affects differentiation
+- Buzzwords like "AI", "blockchain", or "quantum" must NOT increase scores unless tied to clear implementation
+- If an idea violates scientific, ethical, or legal constraints, cap the score below 40 regardless of other strengths
+- Evaluate ideas strictly using these rules
+
 INSTRUCTIONS:
 1. Analyze the idea thoroughly across all required dimensions
-2. Be CRITICAL and REALISTIC - if the idea is technically impossible, clearly state this
-3. Consider current technology limitations - do not give high scores to science fiction ideas
-4. Provide ONLY valid JSON output - no markdown, no extra text
-5. Do NOT hallucinate metrics or data - use reasonable estimates based on the idea description
-6. Be objective and balanced - penalize unrealistic/impossible ideas appropriately
-7. Ensure all fields are filled with meaningful content
-8. If the idea requires technology that doesn't exist (e.g., reading dreams, time travel, teleportation), mark technical feasibility as very low
+2. PRIORITIZE PRACTICAL FEASIBILITY over innovation buzzwords
+3. Be CRITICAL and REALISTIC - if the idea is technically impossible, clearly state this
+4. CRITICAL: Ideas that claim to "read human thoughts" or "read minds" are SCIENTIFICALLY IMPOSSIBLE and should score 15-20. Current brain-computer interfaces can detect basic signals but CANNOT decode specific thoughts or read minds in real-time.
+5. CRITICAL: Ideas that claim to "predict the future" (career success, financial growth, life happiness, life outcomes) are IMPOSSIBLE and should score 0-30. The future cannot be predicted with certainty.
+6. CRITICAL: Ideas using astrology, horoscopes, birth charts, or fortune telling are PSEUDOSCIENCE and should score 0-30. These are not scientifically valid.
+7. CRITICAL: Using "quantum computing", "blockchain", or "AI" for impossible tasks (predictions, mind reading) does NOT make them possible. These are buzzwords misapplied to impossible tasks.
+8. CRITICAL: Analyzing brain signals, facial expressions, voice tone, or social media CANNOT read thoughts or predict future outcomes. These can only provide current insights, not mind reading or future predictions.
+9. Focus on whether the idea can be built TODAY with EXISTING technology in 6-12 months
+10. Provide ONLY valid JSON output - no markdown, no extra text
+11. Do NOT hallucinate metrics or data - use reasonable estimates based on the idea description
+12. Be objective and balanced - penalize unrealistic/impossible ideas appropriately
+13. Ensure all fields are filled with meaningful content
+14. If the idea requires technology that doesn't exist (e.g., reading thoughts, reading dreams, time travel, teleportation), mark technical feasibility as very low
 
 REQUIRED OUTPUT FORMAT (JSON only):
 {{
@@ -98,16 +127,38 @@ REQUIRED OUTPUT FORMAT (JSON only):
 IMPORTANT:
 - Return ONLY the JSON object, no markdown formatting
 - feasibility_score should be an integer between 0-100 (you will provide initial estimate)
-- Be REALISTIC with the score:
-  * 0-30: Technically impossible or requires non-existent technology
-  * 31-50: Very difficult, requires breakthrough technology not yet available
-  * 51-70: Challenging but feasible with current technology
-  * 71-85: Good idea, technically feasible, clear path to execution
-  * 86-100: Excellent idea, highly feasible, strong market potential
+- Be ACCURATE and STRICT with the score - FOLLOW THESE RULES EXACTLY:
+  * 10-35: LOW FEASIBILITY - Ideas that:
+    - Claim scientifically impossible capabilities (mind reading, exact exam prediction, guaranteed profits, future prediction)
+    - Promise guaranteed success or exact outcomes
+    - Are vague, abstract, or lack concrete execution plan
+    - Enable cheating, manipulation, or unethical behavior
+    - Have no realistic MVP or validation path
+  * 36-50: Moderate feasibility - Some issues but partially feasible
+  * 51-74: Good feasibility - Solves real problem but may have some limitations
+  * 75-95: HIGH FEASIBILITY - ONLY if ALL criteria met:
+    - Solves real, existing problem
+    - Clear target user
+    - Uses proven technology
+    - Realistic 6-12 month MVP path
+    - No guaranteed promises
+    - Low ethical/legal risk
+  * 96-100: Reserved for exceptional cases only
+- CRITICAL RULES:
+  * Ideas claiming impossible capabilities (mind reading, exact exam prediction, guaranteed profits, future prediction) MUST score 10-35
+  * Ideas promising guaranteed success or exact outcomes MUST score 10-35
+  * Ideas that enable cheating, manipulation, or unethical behavior MUST score 10-35
+  * Ideas that violate scientific, ethical, or legal constraints MUST be capped below 40
+  * Competition does NOT reduce feasibility - only affects differentiation
+  * Buzzwords ("AI", "blockchain", "quantum") do NOT increase scores unless tied to clear implementation
+  * Standard business software (attendance, HR, payroll, CRM, SaaS) using proven tech should score 75-90
+  * Ideas with real problem, clear target, proven tech, 6-12 month MVP path should score 75-95
+  * Be CONSISTENT - same idea should receive nearly the same score every time
 - All string fields should be 1-3 sentences
 - Arrays should have 3 items each
 - Be specific and actionable in your analysis
-- If the idea is impossible (e.g., reading dreams, mind control, time travel), give a low score (0-40) and explain why in technical_feasibility
+- If the idea is impossible (e.g., reading dreams, mind control, time travel, predicting future), give a low score (0-30) and explain why in technical_feasibility
+- If the idea uses standard, proven technology (mobile/web apps, standard APIs), clearly state this in technical_feasibility and give appropriate scores
 
 Now provide the JSON evaluation:"""
         
@@ -131,6 +182,7 @@ Now provide the JSON evaluation:"""
             for model in self.models_to_try:
                 try:
                     # Call Groq API
+                    # Use low temperature (0.1) for more deterministic, consistent results
                     response = self.client.chat.completions.create(
                         model=model,
                         messages=[
@@ -143,7 +195,7 @@ Now provide the JSON evaluation:"""
                                 "content": prompt
                             }
                         ],
-                        temperature=0.7,
+                        temperature=0.1,  # Low temperature for consistency (was 0.7)
                         max_tokens=2000,
                         response_format={"type": "json_object"}  # Force JSON output
                     )

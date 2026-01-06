@@ -52,3 +52,7 @@ function IdeaInput({ onEvaluate, loading, error }) {
 
 export default IdeaInput;
 
+
+
+
+

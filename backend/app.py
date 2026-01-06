@@ -8,6 +8,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import hashlib
 from services.llm_service import LLMService
 from services.scoring import ScoringService
 from services.pdf_generator import PDFGenerator
@@ -26,6 +27,44 @@ llm_service = LLMService()
 scoring_service = ScoringService()
 pdf_generator = PDFGenerator()
 
+# Cache for evaluations (in-memory, persists for server lifetime)
+# Key: hash of normalized idea text, Value: full evaluation result
+evaluation_cache = {}
+
+
+def normalize_idea_text(idea_text: str) -> str:
+    """
+    Normalize idea text for consistent caching
+    - Strip whitespace
+    - Convert to lowercase
+    - Remove extra spaces
+    """
+    return ' '.join(idea_text.strip().lower().split())
+
+
+def get_cache_key(idea_text: str) -> str:
+    """
+    Generate a cache key from idea text
+    Uses SHA256 hash for consistent key generation
+    """
+    normalized = normalize_idea_text(idea_text)
+    return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+
+
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint with API information"""
+    return jsonify({
+        "message": "Startup Evaluator API",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health (GET) - Health check",
+            "evaluate": "/evaluate (POST) - Evaluate startup idea",
+            "generate_pdf": "/generate-pdf (POST) - Generate PDF report"
+        },
+        "note": "This is the API backend. Access the frontend at http://localhost:3000"
+    }), 200
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -38,6 +77,7 @@ def evaluate_startup():
     """
     Main evaluation endpoint
     Accepts startup idea text and returns structured evaluation
+    Uses caching to ensure same idea always returns same result
     """
     try:
         # Validate input
@@ -53,6 +93,18 @@ def evaluate_startup():
                 "error": "Idea text cannot be empty"
             }), 400
         
+        # Check cache first
+        cache_key = get_cache_key(idea_text)
+        if cache_key in evaluation_cache:
+            # Return cached result
+            cached_evaluation = evaluation_cache[cache_key]
+            return jsonify({
+                "success": True,
+                "evaluation": cached_evaluation,
+                "cached": True
+            }), 200
+        
+        # Cache miss - perform evaluation
         # Get LLM evaluation
         evaluation = llm_service.evaluate_idea(idea_text)
         
@@ -73,10 +125,14 @@ def evaluate_startup():
         component_scores = scoring_service.get_component_scores(evaluation)
         evaluation['component_scores'] = component_scores
         
+        # Store in cache for future requests
+        evaluation_cache[cache_key] = evaluation
+        
         # Return structured response
         return jsonify({
             "success": True,
-            "evaluation": evaluation
+            "evaluation": evaluation,
+            "cached": False
         }), 200
         
     except Exception as e:

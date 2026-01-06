@@ -30,3 +30,7 @@ def handle_errors(error: Exception) -> tuple:
         "error_type": error_type
     }), 500
 
+
+
+
+
