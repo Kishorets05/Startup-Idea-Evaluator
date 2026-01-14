@@ -2,6 +2,8 @@
 
 An AI-powered web application that evaluates startup ideas and provides comprehensive, structured analysis with visual analytics and downloadable PDF reports.
 
+🌐 **Live Demo**: [https://startup-idea-evaluator-engine.streamlit.app/](https://startup-idea-evaluator-engine.streamlit.app/)
+
 ## 📋 Features
 
 - **AI-Powered Analysis**: Uses Groq LLM to analyze startup ideas
@@ -51,20 +53,20 @@ startup/
 
 ### Option 1: Streamlit Application (Recommended) ⭐
 
+**🌐 Try it online**: [https://startup-idea-evaluator-engine.streamlit.app/](https://startup-idea-evaluator-engine.streamlit.app/)
+
 The easiest way to run the application with a modern, professional UI.
 
 1. **Install Streamlit dependencies:**
 ```bash
-pip install -r requirements_streamlit.txt
+pip install streamlit plotly groq python-dotenv reportlab
 ```
 
 2. **Configure environment variables:**
-   - Create `.env` file in `backend/` directory
+   - Create `.env` file in `backend/` directory (or use Streamlit secrets)
    - Add your Groq API key:
    ```
    GROQ_API_KEY=your_api_key_here
-   FLASK_ENV=development
-   FLASK_DEBUG=True
    ```
 
 3. **Run the Streamlit app:**
@@ -174,6 +176,8 @@ Feasibility score (0-100) is calculated using **strict feasibility criteria**, n
 - **Risk Level** (10%)
 
 ## 🔌 API Endpoints
+
+**Deployed Streamlit App:** [https://startup-idea-evaluator-engine.streamlit.app/](https://startup-idea-evaluator-engine.streamlit.app/)
 
 **Deployed API:** `https://startup-idea-evaluator-bryf.onrender.com`
 
